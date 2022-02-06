@@ -12,7 +12,7 @@ import (
 
 var server *http.Server
 
-func Serve() {
+func Serve(shutdown chan bool) {
 	if server != nil {
 		panic("Can only create an HTTP server once!")
 	}
@@ -39,5 +39,6 @@ func Serve() {
 		if err := server.ListenAndServe(); err != nil {
 			log.Fatal(err)
 		}
+		shutdown <- true
 	}()
 }

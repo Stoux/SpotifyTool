@@ -1,16 +1,25 @@
 package main
 
 import (
+	"SpotifyTool/processing"
 	"SpotifyTool/server"
-	"time"
 )
 
-func main() {
+var shutdown chan bool
 
-	server.Serve()
+func main() {
+	shutdown = make(chan bool)
+
+	// Start the background processing
+	processing.Init()
+
+	// Start the http server
+	server.Serve(shutdown)
 
 	// Do other things
-	for true {
-		time.Sleep(1)
+	for {
+		if shouldShutdown := <-shutdown; shouldShutdown {
+			return
+		}
 	}
 }
