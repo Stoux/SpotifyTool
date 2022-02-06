@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"SpotifyTool/processing"
 	"SpotifyTool/server/handlers"
 	httpState "SpotifyTool/server/state"
 	"SpotifyTool/server/util"
@@ -70,8 +71,12 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		incorrectCallback(w, r, "Successfully authenticated but failed to fetch user data?")
 	}
 
-	// TODO: Pass the Client & User to a handling script
+	// Pass the user to processing for account creation & further handling
 	log.Println("User has authenticated: " + user.DisplayName + "(" + user.ID + ")")
+	processing.GetLoginChannel() <- processing.SpotifyClientLogin{
+		Token: spotifyToken,
+		User:  user,
+	}
 
 	// Create an access-token
 	accessToken := httpState.CreateTokenFor(user.ID)

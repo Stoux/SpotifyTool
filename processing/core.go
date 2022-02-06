@@ -22,6 +22,6 @@ func GetLoginChannel() chan SpotifyClientLogin {
 }
 
 type SpotifyClientLogin struct {
-	token *oauth2.Token
-	user  spotify.User
+	Token *oauth2.Token
+	User  *spotify.PrivateUser
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"SpotifyTool/persistance"
 	"SpotifyTool/processing"
 	"SpotifyTool/server"
 )
@@ -9,6 +10,9 @@ var shutdown chan bool
 
 func main() {
 	shutdown = make(chan bool)
+
+	// Create the database (connection)
+	persistance.Init()
 
 	// Start the background processing
 	processing.Init()
