@@ -16,7 +16,12 @@ type ToolUser struct {
 	Email             sql.NullString
 	SpotifyUri        sql.NullString
 	SpotifyProfileUrl sql.NullString
-	Plan              sql.NullString
+	// Plan is like 'premium', 'free', etc.
+	Plan sql.NullString
+
+	// Relations
+	// Playlists contain all playlists that this user has in their library (or at least that we can see)
+	Playlists []*SpotifyPlaylist `gorm:"many2many:tool_user_playlists"`
 }
 
 // ToolSpotifyAuthToken contains OAUth tokens used to access the Spotify API
@@ -35,7 +40,9 @@ type ToolSpotifyAuthToken struct {
 func (token *ToolSpotifyAuthToken) FillFromOAuthToken(oauthToken *oauth2.Token) {
 	token.AccessToken = oauthToken.AccessToken
 	token.TokenType = oauthToken.TokenType
-	token.RefreshToken = oauthToken.RefreshToken
+	if oauthToken.RefreshToken != "" {
+		token.RefreshToken = oauthToken.RefreshToken
+	}
 	token.Expiry = oauthToken.Expiry
 }
 

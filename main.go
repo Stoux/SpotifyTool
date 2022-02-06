@@ -4,12 +4,16 @@ import (
 	"SpotifyTool/persistance"
 	"SpotifyTool/processing"
 	"SpotifyTool/server"
+	httpState "SpotifyTool/server/state"
 )
 
 var shutdown chan bool
 
 func main() {
 	shutdown = make(chan bool)
+
+	// Resolve any settings & address values
+	httpState.ResolveAddress()
 
 	// Create the database (connection)
 	persistance.Init()

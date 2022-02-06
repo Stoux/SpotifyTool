@@ -17,8 +17,6 @@ func Serve(shutdown chan bool) {
 		panic("Can only create an HTTP server once!")
 	}
 
-	state.ResolveAddress()
-
 	// Build the route and it's routes
 	router := mux.NewRouter()
 	routes.GeneralRoutes(router)

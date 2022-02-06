@@ -1,27 +1,25 @@
 package processing
 
-import (
-	"github.com/zmb3/spotify/v2"
-	"golang.org/x/oauth2"
-)
-
 var (
-	onLoginChannel chan SpotifyClientLogin
+	onLoginChannel       chan SpotifyClientLogin
+	onSpotifyTaskChannel chan SpotifyFetchTask
 )
 
 // Init the processing tasks that keeps track of changes & handles new client logins
 func Init() {
 	onLoginChannel = make(chan SpotifyClientLogin, 10000)
+	onSpotifyTaskChannel = make(chan SpotifyFetchTask, 10000)
 
 	go HandleLogins()
+	go HandleTasks()
 }
 
 // GetLoginChannel fetches the channel on which a new SpotifyClientLogin can be posted
-func GetLoginChannel() chan SpotifyClientLogin {
+func GetLoginChannel() chan<- SpotifyClientLogin {
 	return onLoginChannel
 }
 
-type SpotifyClientLogin struct {
-	Token *oauth2.Token
-	User  *spotify.PrivateUser
+// GetTaskChannel returns the (buffered) channel on which new SpotifyFetchTask items can be posted
+func GetTaskChannel() chan<- SpotifyFetchTask {
+	return onSpotifyTaskChannel
 }

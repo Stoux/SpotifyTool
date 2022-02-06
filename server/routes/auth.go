@@ -14,19 +14,12 @@ import (
 )
 
 var (
-	knownOAuthStates                              = map[string]string{}
-	spotifyRedirectUri                            = ""
-	authenticator      *spotifyauth.Authenticator = nil
+	knownOAuthStates                            = map[string]string{}
+	authenticator    *spotifyauth.Authenticator = nil
 )
 
 func AuthRoutes(router *mux.Router) {
-	// Set variables
-	spotifyRedirectUri = httpState.GetApiRoot() + "/auth/callback"
-	authenticator = spotifyauth.New(spotifyauth.WithRedirectURL(spotifyRedirectUri), spotifyauth.WithScopes(
-		spotifyauth.ScopeUserReadPrivate,
-		spotifyauth.ScopePlaylistModifyPublic,
-		spotifyauth.ScopePlaylistModifyPrivate,
-	))
+	authenticator = httpState.GetSpotifyAuthenticator()
 
 	// Register the route
 	router.HandleFunc("/auth/start", handlers.JsonWithOutput(handleAuthStart))

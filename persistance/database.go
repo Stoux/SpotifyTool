@@ -46,6 +46,7 @@ func migrateSchema() {
 	err := db.AutoMigrate(
 		models.ToolUser{},
 		models.ToolSpotifyAuthToken{},
+		models.SpotifyPlaylist{},
 	)
 	if err != nil {
 		panic(err)

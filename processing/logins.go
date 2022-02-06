@@ -4,6 +4,8 @@ import (
 	"SpotifyTool/persistance"
 	"SpotifyTool/persistance/models"
 	"database/sql"
+	"github.com/zmb3/spotify/v2"
+	"golang.org/x/oauth2"
 )
 
 // HandleLogins listen to logins that have taken place and inserts them into the database
@@ -43,12 +45,15 @@ func handleLogin(login SpotifyClientLogin) {
 		token.ToolUserID = user.ID
 		db.Create(&token)
 	} else {
-		db.Updates(&token)
+		db.Save(&token)
 	}
 
 	// Trigger full playlist fetch if the user is new
 	if newUser {
-		// TODO: Trigger full fetch
+		GetTaskChannel() <- SpotifyFetchTask{
+			ToolUserID: user.ID,
+			Task:       CheckPlaylistChanges,
+		}
 	}
 }
 
@@ -57,4 +62,9 @@ func nullString(value string) sql.NullString {
 		String: value,
 		Valid:  value != "",
 	}
+}
+
+type SpotifyClientLogin struct {
+	Token *oauth2.Token
+	User  *spotify.PrivateUser
 }
