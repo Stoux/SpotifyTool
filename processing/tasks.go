@@ -8,6 +8,7 @@ import (
 	"github.com/zmb3/spotify/v2"
 	"gorm.io/gorm"
 	"log"
+	"time"
 )
 
 var (
@@ -44,7 +45,8 @@ func HandleTasks() {
 		if task.Task == CheckPlaylistChanges {
 			err := doCheckPlaylistChanges(toolToken.ToolUser, client)
 			if err != nil {
-				// TODO
+				log.Println(err)
+				// TODO SEntry
 				return
 			}
 		} else if task.Task == BackupPlaylists {
@@ -83,6 +85,8 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 		// Fetch the page
 		playlistsPage, err := client.GetPlaylistsForUser(ctx, user.SpotifyId, spotify.Limit(maxPlaylistsPerPage), spotify.Offset(offset))
 		if err != nil {
+			log.Println(err)
+			// TODO: Better error handling?
 			return err
 		}
 
@@ -102,10 +106,13 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 				})
 				delete(currentPlaylistIdToSnapshot, playlistId)
 
+				// TODO: Skip if by Spotify & updated < 1 hour ago
+
 				// Update the playlist meta
 				currentPlaylist := currentPlaylistIdToPlaylist[playlistId]
 				currentPlaylist.FromSimpleApiPlaylist(&foundPlaylist)
-				db.Save(&currentPlaylist) // Risky to update the snapshot before checking the changes?
+				db.Save(&currentPlaylist) // TODO: Risky to update the snapshot before checking the changes?
+				// TODO: Set update time
 			}
 		}
 
@@ -148,13 +155,9 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 	// Update the tracks for the given playlists
 	for _, updatePlaylist := range fetchTracksForPlaylists {
 		if err := updateTracksOfPlaylist(client, updatePlaylist); err != nil {
-			return err
+			log.Println(err)
 		}
 	}
-
-	// items(added_at,added_by(id),is_local,track(id,name,artists(id,name),album(album_type,id,name)))
-	//page, err := client.GetPlaylistTracks(ctx, "")
-	//page.Tracks[0].
 
 	// Remove connection between user & playlists that are still in 'currentPlaylistIdToSnapshot', the user doesn't follow them anymore
 	// TODO: Remove connection
@@ -162,6 +165,7 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 
 	// Update the relation between the user & the playlists
 	if err := db.Model(&user).Association("Playlists").Replace(currentPlaylists); err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -173,6 +177,7 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 func updateTracksOfPlaylist(client *spotify.Client, update updatePlaylist) error {
 	// Load the tracks of the given playlist
 	if err := db.Model(update.Local).Association("Tracks").Find(&update.Local.Tracks); err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -186,18 +191,31 @@ func updateTracksOfPlaylist(client *spotify.Client, update updatePlaylist) error
 	log.Println("Updating tracks of " + update.Local.ID + ": " + update.Local.Name)
 
 	// Fetch all playlist from the API
+	tries := 0
 	offset := 0
 	for {
 		// Fetch the page
 		tracksPage, err := client.GetPlaylistTracks(ctx, update.Remote.ID,
 			spotify.Limit(maxTracksPerPage), spotify.Offset(offset),
-			spotify.Fields("items(added_at,added_by(id),is_local,track(id,name,artists(id,name),album(album_type,id,name)))"))
+			spotify.Fields("total,next,items(added_at,added_by(id),is_local,track(id,name,artists(id,name),album(album_type,id,name)))"))
 		if err != nil {
+			log.Println(err)
+			tries++
+			if tries <= 3 {
+				log.Println("=> Trying again")
+				time.Sleep(5 * time.Second)
+				continue
+			}
 			return err
 		}
 
 		// Loop through the playlists
 		for _, foundTrack := range tracksPage.Tracks {
+			// Skip local tracks
+			if foundTrack.IsLocal || foundTrack.Track.ID.String() == "" {
+				continue
+			}
+
 			if localTrack, found := idToLocalTrack[foundTrack.Track.ID.String()]; found {
 				// Already exists, check if it should be updated
 				if changed := localTrack.FromSpotifyPlaylistTrack(foundTrack); changed {
