@@ -47,6 +47,7 @@ func migrateSchema() {
 		models.ToolUser{},
 		models.ToolSpotifyAuthToken{},
 		models.SpotifyPlaylist{},
+		models.SpotifyPlaylistTrack{},
 	)
 	if err != nil {
 		panic(err)

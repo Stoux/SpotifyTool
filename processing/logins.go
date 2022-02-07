@@ -3,7 +3,6 @@ package processing
 import (
 	"SpotifyTool/persistance"
 	"SpotifyTool/persistance/models"
-	"database/sql"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/oauth2"
 )
@@ -28,10 +27,10 @@ func handleLogin(login SpotifyClientLogin) {
 		user := models.ToolUser{
 			SpotifyId:         login.User.ID,
 			DisplayName:       login.User.DisplayName,
-			Email:             nullString(login.User.Email),
-			SpotifyUri:        nullString(string(login.User.URI)),
-			SpotifyProfileUrl: nullString(login.User.Endpoint),
-			Plan:              nullString(login.User.Product),
+			Email:             models.AsNullableString(login.User.Email),
+			SpotifyUri:        models.AsNullableString(string(login.User.URI)),
+			SpotifyProfileUrl: models.AsNullableString(login.User.Endpoint),
+			Plan:              models.AsNullableString(login.User.Product),
 		}
 		db.Create(&user)
 		newUser = true
@@ -54,13 +53,6 @@ func handleLogin(login SpotifyClientLogin) {
 			ToolUserID: user.ID,
 			Task:       CheckPlaylistChanges,
 		}
-	}
-}
-
-func nullString(value string) sql.NullString {
-	return sql.NullString{
-		String: value,
-		Valid:  value != "",
 	}
 }
 

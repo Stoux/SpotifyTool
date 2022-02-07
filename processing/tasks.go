@@ -15,7 +15,8 @@ var (
 	db  *gorm.DB
 )
 
-const maxPerPage = 50
+const maxPlaylistsPerPage = 50
+const maxTracksPerPage = 100
 
 func HandleTasks() {
 	authenticator := state.GetSpotifyAuthenticator()
@@ -73,14 +74,14 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 	}
 
 	// Build a map of playlists that we have to update as their snapshot ID has changed
-	var fetchTracksForPlaylists []spotify.SimplePlaylist
+	var fetchTracksForPlaylists []updatePlaylist
 	newPlaylists := map[string]spotify.SimplePlaylist{}
 
 	// Fetch all playlist from the API
 	offset := 0
 	for {
 		// Fetch the page
-		playlistsPage, err := client.GetPlaylistsForUser(ctx, user.SpotifyId, spotify.Limit(maxPerPage), spotify.Offset(offset))
+		playlistsPage, err := client.GetPlaylistsForUser(ctx, user.SpotifyId, spotify.Limit(maxPlaylistsPerPage), spotify.Offset(offset))
 		if err != nil {
 			return err
 		}
@@ -95,7 +96,10 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 				newPlaylists[playlistId] = foundPlaylist
 			} else if currentPlaylistSnapshot != foundPlaylist.SnapshotID {
 				// Snapshot has changed -> changes to the playlist have been made
-				fetchTracksForPlaylists = append(fetchTracksForPlaylists, foundPlaylist)
+				fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
+					Local:  currentPlaylistIdToPlaylist[playlistId],
+					Remote: foundPlaylist,
+				})
 				delete(currentPlaylistIdToSnapshot, playlistId)
 
 				// Update the playlist meta
@@ -107,7 +111,7 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 
 		// Go to the next page if possible
 		if playlistsPage.Next != "" {
-			offset += maxPerPage
+			offset += maxPlaylistsPerPage
 		} else {
 			break
 		}
@@ -122,10 +126,18 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 			// Actually new playlist
 			foundNewPlaylist.FromSimpleApiPlaylist(&newPlaylist)
 			db.Create(&foundNewPlaylist)
+			currentPlaylistIdToPlaylist[playlistId] = &foundNewPlaylist
+			fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
+				Local:  &foundNewPlaylist,
+				Remote: newPlaylist,
+			})
 		} else {
 			// We already have it... Has it changed tho?
 			if foundNewPlaylist.SnapshotId != newPlaylist.SnapshotID {
-				fetchTracksForPlaylists = append(fetchTracksForPlaylists, newPlaylist)
+				fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
+					Local:  &foundNewPlaylist,
+					Remote: newPlaylist,
+				})
 			}
 		}
 
@@ -134,6 +146,13 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 	}
 
 	// Update the tracks for the given playlists
+	for _, updatePlaylist := range fetchTracksForPlaylists {
+		if err := updateTracksOfPlaylist(client, updatePlaylist); err != nil {
+			return err
+		}
+	}
+
+	// items(added_at,added_by(id),is_local,track(id,name,artists(id,name),album(album_type,id,name)))
 	//page, err := client.GetPlaylistTracks(ctx, "")
 	//page.Tracks[0].
 
@@ -151,8 +170,71 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 	return nil
 }
 
-func updateTracksOfPlaylist() {
+func updateTracksOfPlaylist(client *spotify.Client, update updatePlaylist) error {
+	// Load the tracks of the given playlist
+	if err := db.Model(update.Local).Association("Tracks").Find(&update.Local.Tracks); err != nil {
+		return err
+	}
 
+	localTracks := update.Local.Tracks
+	idToLocalTrack := map[string]*models.SpotifyPlaylistTrack{}
+	for _, localTrack := range localTracks {
+		idToLocalTrack[localTrack.TrackId] = localTrack
+	}
+
+	// Start fetching the remote tracks
+	log.Println("Updating tracks of " + update.Local.ID + ": " + update.Local.Name)
+
+	// Fetch all playlist from the API
+	offset := 0
+	for {
+		// Fetch the page
+		tracksPage, err := client.GetPlaylistTracks(ctx, update.Remote.ID,
+			spotify.Limit(maxTracksPerPage), spotify.Offset(offset),
+			spotify.Fields("items(added_at,added_by(id),is_local,track(id,name,artists(id,name),album(album_type,id,name)))"))
+		if err != nil {
+			return err
+		}
+
+		// Loop through the playlists
+		for _, foundTrack := range tracksPage.Tracks {
+			if localTrack, found := idToLocalTrack[foundTrack.Track.ID.String()]; found {
+				// Already exists, check if it should be updated
+				if changed := localTrack.FromSpotifyPlaylistTrack(foundTrack); changed {
+					db.Save(&localTrack)
+				}
+				delete(idToLocalTrack, localTrack.TrackId)
+			} else {
+				// New track
+				newLocalTrack := models.SpotifyPlaylistTrack{
+					SpotifyPlaylistID: update.Local.ID,
+				}
+				newLocalTrack.FromSpotifyPlaylistTrack(foundTrack)
+				db.Create(&newLocalTrack)
+				localTracks = append(localTracks, &newLocalTrack)
+			}
+		}
+
+		// Go to the next page if possible
+		if tracksPage.Next != "" {
+			offset += maxTracksPerPage
+		} else {
+			break
+		}
+	}
+
+	// Delete any tracks that are no longer in the playlist
+	for _, deletedTrack := range idToLocalTrack {
+		// Soft delete it from the DB
+		db.Delete(&deletedTrack)
+	}
+
+	return nil
+}
+
+type updatePlaylist struct {
+	Local  *models.SpotifyPlaylist
+	Remote spotify.SimplePlaylist
 }
 
 type SpotifyFetchTask struct {
