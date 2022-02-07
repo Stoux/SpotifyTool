@@ -1,19 +1,11 @@
 package processing
 
 import (
-	"SpotifyTool/persistance"
 	"SpotifyTool/persistance/models"
 	"SpotifyTool/server/state"
-	"context"
 	"github.com/zmb3/spotify/v2"
-	"gorm.io/gorm"
 	"log"
 	"time"
-)
-
-var (
-	ctx = context.Background()
-	db  *gorm.DB
 )
 
 const (
@@ -25,7 +17,6 @@ const (
 
 func HandleTasks() {
 	authenticator := state.GetSpotifyAuthenticator()
-	db = persistance.GetDatabase()
 
 	for {
 		// Retrieve the first task in queue

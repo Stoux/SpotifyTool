@@ -6,17 +6,33 @@ import (
 )
 
 var (
-	port                                     = "8080"
+	apiPort                                  = "8080"
+	frontendPort                             = "8040"
 	apiRoot                                  = ""
+	frontendRoot                             = ""
+	frontendPath                             = "./web/build"
+	serveFrontend                            = true
 	authenticator *spotifyauth.Authenticator = nil
 )
 
 func ResolveAddress() {
-	if resolvedPort := os.Getenv("SPOTIFY_TOOL_PORT"); resolvedPort != "" {
-		port = resolvedPort
+	if resolvedPort := os.Getenv("SPOTIFY_TOOL_API_PORT"); resolvedPort != "" {
+		apiPort = resolvedPort
 	}
-	if apiRoot = os.Getenv("SPOTIFY_ROOL_PUBLIC_ROOT"); apiRoot == "" {
-		apiRoot = "http://localhost:" + port
+	if resolvedPort := os.Getenv("SPOTIFY_TOOL_FRONTEND_PORT"); resolvedPort != "" {
+		frontendPort = resolvedPort
+	}
+	if apiRoot = os.Getenv("SPOTIFY_TOOL_API_ROOT"); apiRoot == "" {
+		apiRoot = "http://localhost:" + apiPort
+	}
+	if frontendRoot = os.Getenv("SPOTIFY_TOOL_FRONTEND_ROOT"); frontendRoot == "" {
+		frontendRoot = "http://localhost:" + frontendPort
+	}
+	if newFrontendPath := os.Getenv("SPOTIFY_TOOL_FRONTEND_PATH"); newFrontendPath != "" {
+		frontendPath = newFrontendPath
+	}
+	if shouldServeFrontend := os.Getenv("SPOTIFY_TOOL_SERVE_FRONTEND"); shouldServeFrontend != "" {
+		serveFrontend = shouldServeFrontend == "true" || shouldServeFrontend == "1" || shouldServeFrontend == "yes"
 	}
 
 	spotifyRedirectUri := apiRoot + "/auth/callback"
@@ -35,8 +51,21 @@ func ResolveAddress() {
 
 // GetFrontendRoot returns the root domain / HTTP address without trailing slash
 func GetFrontendRoot() string {
-	// TODO
-	return "https://stoux.nl"
+	return frontendRoot
+}
+
+// GetFrontendPort on which the frontend / SPA server should bind
+func GetFrontendPort() string {
+	return frontendPort
+}
+
+// GetFrontendServePath from which path the frontend HTML files should be served
+func GetFrontendServePath() string {
+	if serveFrontend {
+		return frontendPath
+	} else {
+		return ""
+	}
 }
 
 // GetApiRoot returns the root domain / HTTP address without trailing slash
@@ -44,8 +73,8 @@ func GetApiRoot() string {
 	return apiRoot
 }
 
-func GetBindPort() string {
-	return port
+func GetApiPort() string {
+	return apiPort
 }
 
 func GetSpotifyAuthenticator() *spotifyauth.Authenticator {

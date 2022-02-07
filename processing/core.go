@@ -1,19 +1,25 @@
 package processing
 
 import (
+	"SpotifyTool/persistance"
 	"SpotifyTool/persistance/models"
+	"context"
+	"gorm.io/gorm"
 	"time"
 )
 
 var (
 	onLoginChannel       chan SpotifyClientLogin
 	onSpotifyTaskChannel chan SpotifyFetchTask
+	ctx                  = context.Background()
+	db                   *gorm.DB
 )
 
 // Init the processing tasks that keeps track of changes & handles new client logins
 func Init() {
 	onLoginChannel = make(chan SpotifyClientLogin, 10000)
 	onSpotifyTaskChannel = make(chan SpotifyFetchTask, 10000)
+	db = persistance.GetDatabase()
 
 	go HandleLogins()
 	go HandleTasks()

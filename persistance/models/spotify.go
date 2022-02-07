@@ -42,7 +42,7 @@ func (sp *SpotifyPlaylist) SetLastCheckedToNow() {
 	sp.LastChecked = time.Now()
 }
 
-// IsAlreadyCheckInLast checks if the this playlist was already check in the last [given time duration].
+// IsAlreadyCheckedInLast checks if this playlist was already checked in the last [given time duration].
 // It also adds a small buffer of a couple of minutes to be a bit more lenient.
 func (sp *SpotifyPlaylist) IsAlreadyCheckedInLast(d time.Duration) bool {
 	const buffer = 5 * time.Minute
