@@ -19,7 +19,7 @@ var (
 func Init() {
 	onLoginChannel = make(chan SpotifyClientLogin, 10000)
 	onSpotifyTaskChannel = make(chan SpotifyFetchTask, 10000)
-	db = persistance.GetDatabase()
+	db = persistance.Db
 
 	go HandleLogins()
 	go HandleTasks()

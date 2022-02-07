@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"SpotifyTool/persistance"
+	"SpotifyTool/persistance/models"
 	"SpotifyTool/server/state"
 	"net/http"
 )
@@ -24,4 +26,10 @@ func Auth(handler func(writer http.ResponseWriter, request *http.Request, userSp
 		// Otherwise, we're going to return a 403
 		writer.WriteHeader(http.StatusForbidden)
 	}
+}
+
+func AuthUser(handler func(writer http.ResponseWriter, request *http.Request, user models.ToolUser)) func(writer http.ResponseWriter, request *http.Request) {
+	return Auth(func(writer http.ResponseWriter, request *http.Request, userSpotifyId string) {
+		handler(writer, request, persistance.GetToolUserBySpotifyId(userSpotifyId))
+	})
 }

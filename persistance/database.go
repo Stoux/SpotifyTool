@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	db *gorm.DB
+	Db *gorm.DB
 )
 
 // Init the database connection & ORM.
@@ -25,7 +25,7 @@ func Init() {
 	// Init the DB
 	var err error
 	dsn := user + ":" + password + "@" + protocol + "(" + address + ")/" + databaseName + "?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	Db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +43,7 @@ func getEnvOrDefault(env string, defaultValue string) string {
 }
 
 func migrateSchema() {
-	err := db.AutoMigrate(
+	err := Db.AutoMigrate(
 		models.ToolUser{},
 		models.ToolSpotifyAuthToken{},
 		models.SpotifyPlaylist{},
@@ -52,8 +52,4 @@ func migrateSchema() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func GetDatabase() *gorm.DB {
-	return db
 }

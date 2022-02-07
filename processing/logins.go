@@ -16,7 +16,7 @@ func HandleLogins() {
 }
 
 func handleLogin(login SpotifyClientLogin) {
-	db := persistance.GetDatabase()
+	db := persistance.Db
 
 	// Check if the user already exists
 	newUser := false

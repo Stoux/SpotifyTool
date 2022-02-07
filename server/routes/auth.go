@@ -86,7 +86,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 func getCurrentUser(w http.ResponseWriter, r *http.Request, userSpotifyId string) {
 	handlers.JsonWithOutput(func(w http.ResponseWriter, r *http.Request) (result interface{}) {
 		user := models.ToolUser{}
-		persistance.GetDatabase().Where("spotify_id = ?", userSpotifyId).Find(&user)
+		persistance.Db.Where("spotify_id = ?", userSpotifyId).Find(&user)
 
 		return user
 	})(w, r)

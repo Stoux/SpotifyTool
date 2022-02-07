@@ -23,7 +23,8 @@ export default {
     getApi().get('/auth/me').then(result => {
       this.account = result.data
     }).catch(error => {
-
+      this.$store.commit('invalidateAccessToken')
+      this.$router.push('/login')
     })
 
   }

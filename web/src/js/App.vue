@@ -11,6 +11,11 @@
             Home
           </router-link>
         </li>
+        <li class="nav-item">
+          <router-link to="/playlists" active-class="active" class="nav-link text-white">
+            Playlists
+          </router-link>
+        </li>
       </ul>
       <hr>
       <ul class="nav nav-pills flex-column">

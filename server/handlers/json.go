@@ -8,24 +8,26 @@ import (
 
 func Json(handler func(writer http.ResponseWriter, request *http.Request) (result interface{}, shouldOutput bool)) func(writer http.ResponseWriter, request *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		var err error
-
-		// Get the response from the server
 		if result, output := handler(writer, request); output {
-			// Our response is going to be JSON
-			writer.Header().Set("Content-Type", "application/json")
-
-			// Marshall it & write as response
-			if json, err := json2.Marshal(result); err == nil {
-				_, err = writer.Write(json)
-			}
+			OutputJson(writer, result)
 		}
+	}
+}
 
-		// Check if successful
-		if err != nil {
-			writer.WriteHeader(http.StatusInternalServerError)
-			log.Println("[Error] Failed to marshall / write JSON response: ", err)
-		}
+func OutputJson(writer http.ResponseWriter, result interface{}) {
+	// Our response is going to be JSON
+	writer.Header().Set("Content-Type", "application/json")
+
+	// Marshall it & write as response
+	var err error
+	if json, err := json2.Marshal(result); err == nil {
+		_, err = writer.Write(json)
+	}
+
+	// Check if successful
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		log.Println("[Error] Failed to marshall / write JSON response: ", err)
 	}
 }
 

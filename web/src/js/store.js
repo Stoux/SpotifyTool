@@ -10,6 +10,8 @@ const store = createStore({
         return {
             accessToken: get(KEY_ACCESS_TOKEN),
             user: undefined,
+            /** @type {SpotifyPlaylist[]} */
+            playlists: [],
         }
     },
     getters: {
@@ -23,8 +25,35 @@ const store = createStore({
         invalidateAccessToken( state, payload ) {
             state.accessToken = ''
             remove(KEY_ACCESS_TOKEN)
-        }
+        },
+        newPlaylists( state, playlists ) {
+            state.playlists = playlists
+        },
     }
 })
 
 export default store
+
+/**
+ * @typedef {object} SpotifyPlaylist
+ *
+ * @property {string} id
+ * @property {string} name
+ * @property {string} owner_display_name
+ * @property {string} owner_id
+ * @property {boolean} public
+ * @property {boolean} collaborative
+ */
+
+
+/**
+ * @typedef {object} SpotifyPlaylistTrack
+ *
+ * @property {string} ID
+ * @property {string} Name
+ * @property {string} Artists
+ * @property {string} CreatedAt
+ * @property {{Time: string}} AddedAt
+ * @property {string} DeletedAt
+ * @property {string} TrackId
+ */

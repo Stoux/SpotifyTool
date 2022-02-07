@@ -9,13 +9,13 @@ import (
 )
 
 type SpotifyPlaylist struct {
-	ID               string `gorm:"primarykey;type:varchar(255)"`
+	ID               string `gorm:"primarykey;type:varchar(255)" json:"id"`
 	SnapshotId       string `gorm:"type:varchar(255)"`
-	Name             string `gorm:"type:varchar(255)"`
-	Public           bool
-	Collaborative    bool
-	OwnerDisplayName string `gorm:"type:varchar(255)"`
-	OwnerID          string `gorm:"type:varchar(255)"`
+	Name             string `gorm:"type:varchar(255)" json:"name"`
+	Public           bool   `json:"public"`
+	Collaborative    bool   `json:"collaborative"`
+	OwnerDisplayName string `gorm:"type:varchar(255)" json:"owner_display_name"`
+	OwnerID          string `gorm:"type:varchar(255)" json:"owner_id"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	LastChecked      time.Time
