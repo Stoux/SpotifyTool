@@ -1,13 +1,13 @@
 package server
 
 import (
+	"SpotifyTool/server/handlers"
 	"SpotifyTool/server/routes"
 	"SpotifyTool/server/state"
 	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -30,6 +30,15 @@ func api(shutdown chan bool) {
 	router := mux.NewRouter()
 	routes.GeneralRoutes(router)
 	routes.AuthRoutes(router)
+
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	// Build the server with those routes
 	apiServer = &http.Server{
@@ -58,10 +67,16 @@ func frontend(shutdown chan bool) {
 	}
 
 	// Server will have a single route that's just the build assets folder
-	dir := os.DirFS(dirPath)
-	fileServer := http.FileServer(http.FS(dir))
 	router := mux.NewRouter()
-	router.Handle("/", fileServer)
+	router.HandleFunc("/api/health", handlers.JsonWithOutput(func(w http.ResponseWriter, r *http.Request) (result interface{}) {
+		return map[string]bool{"ok": true}
+	}))
+	router.PathPrefix("/").Handler(
+		handlers.SpaHandler{
+			StaticPath: dirPath,
+			IndexPath:  "index.html",
+		},
+	)
 
 	// Build the server
 	frontendServer = &http.Server{

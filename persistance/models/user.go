@@ -11,13 +11,13 @@ import (
 // Each user must have a S
 type ToolUser struct {
 	gorm.Model
-	SpotifyId         string `gorm:"uniqueIndex"`
-	DisplayName       string
+	SpotifyId         string `gorm:"uniqueIndex" json:"spotify_id"`
+	DisplayName       string `json:"display_name"`
 	Email             sql.NullString
-	SpotifyUri        sql.NullString
-	SpotifyProfileUrl sql.NullString
+	SpotifyUri        sql.NullString `json:"spotify_uri"`
+	SpotifyProfileUrl sql.NullString `json:"spotify_profile_url"`
 	// Plan is like 'premium', 'free', etc.
-	Plan sql.NullString
+	Plan sql.NullString `json:"plan"`
 
 	// Relations
 	// Playlists contain all playlists that this user has in their library (or at least that we can see)

@@ -10,7 +10,7 @@ var (
 	frontendPort                             = "8040"
 	apiRoot                                  = ""
 	frontendRoot                             = ""
-	frontendPath                             = "./web/build"
+	frontendPath                             = "./web/build/"
 	serveFrontend                            = true
 	authenticator *spotifyauth.Authenticator = nil
 )

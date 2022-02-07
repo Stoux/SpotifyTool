@@ -1,0 +1,36 @@
+{
+  "name": "spotify-tool-frontend",
+  "version": "1.0.0",
+  "description": "Just a simple Spotify tool / util program that does a couple of things that I feel are missing from Spotify.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "mix",
+    "watch": "mix watch",
+    "hot": "mix watch --hot",
+    "prod": "npm run production",
+    "production": "mix --production"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stoux/SpotifyTool.git"
+  },
+  "author": "Leon Stam <leon@melonats.dev>",
+  "license": "ISC",
+  "homepage": "https://github.com/Stoux/SpotifyTool#readme",
+  "devDependencies": {
+    "browser-sync": "^2.27.7",
+    "browser-sync-webpack-plugin": "^2.3.0",
+    "copy-webpack-plugin": "^10.2.4",
+    "laravel-mix": "^6.0.41",
+    "sass": "^1.49.7",
+    "sass-loader": "^12.4.0",
+    "vue-loader": "^16.8.3"
+  },
+  "dependencies": {
+    "axios": "^0.25.0",
+    "bootstrap": "^5.1.3",
+    "vue": "^3.2.30",
+    "vue-router": "^4.0.12",
+    "vuex": "^4.0.2"
+  }
+}

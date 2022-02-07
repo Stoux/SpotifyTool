@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"SpotifyTool/persistance"
+	"SpotifyTool/persistance/models"
 	"SpotifyTool/processing"
 	"SpotifyTool/server/handlers"
 	httpState "SpotifyTool/server/state"
@@ -24,6 +26,7 @@ func AuthRoutes(router *mux.Router) {
 	// Register the route
 	router.HandleFunc("/auth/start", handlers.JsonWithOutput(handleAuthStart))
 	router.HandleFunc("/auth/callback", handleCallback)
+	router.HandleFunc("/auth/me", handlers.Auth(getCurrentUser))
 }
 
 func handleAuthStart(writer http.ResponseWriter, request *http.Request) interface{} {
@@ -78,6 +81,15 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		"token=" + netUrl.QueryEscape(accessToken.Identifier) +
 		"&name=" + netUrl.QueryEscape(user.DisplayName)
 	http.Redirect(w, r, redirectUrl, http.StatusFound)
+}
+
+func getCurrentUser(w http.ResponseWriter, r *http.Request, userSpotifyId string) {
+	handlers.JsonWithOutput(func(w http.ResponseWriter, r *http.Request) (result interface{}) {
+		user := models.ToolUser{}
+		persistance.GetDatabase().Where("spotify_id = ?", userSpotifyId).Find(&user)
+
+		return user
+	})(w, r)
 }
 
 func incorrectCallback(writer http.ResponseWriter, request *http.Request, error string) {
