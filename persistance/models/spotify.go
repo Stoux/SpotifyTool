@@ -26,14 +26,31 @@ type SpotifyPlaylist struct {
 	Tracks []*SpotifyPlaylistTrack
 }
 
-func (sp *SpotifyPlaylist) FromSimpleApiPlaylist(playlist *spotify.SimplePlaylist) {
+func (sp *SpotifyPlaylist) FromSimpleApiPlaylist(playlist *spotify.SimplePlaylist, changeSnapshot bool) {
 	sp.ID = playlist.ID.String()
-	sp.SnapshotId = playlist.SnapshotID
+	if changeSnapshot {
+		sp.SnapshotId = playlist.SnapshotID
+	}
 	sp.Name = playlist.Name
 	sp.Public = playlist.IsPublic
 	sp.Collaborative = playlist.Collaborative
 	sp.OwnerDisplayName = playlist.Owner.DisplayName
 	sp.OwnerID = playlist.Owner.ID
+}
+
+func (sp *SpotifyPlaylist) SetLastCheckedToNow() {
+	sp.LastChecked = time.Now()
+}
+
+// IsAlreadyCheckInLast checks if the this playlist was already check in the last [given time duration].
+// It also adds a small buffer of a couple of minutes to be a bit more lenient.
+func (sp *SpotifyPlaylist) IsAlreadyCheckedInLast(d time.Duration) bool {
+	const buffer = 5 * time.Minute
+	if d > buffer {
+		d = d - buffer
+	}
+
+	return sp.LastChecked.Add(d).After(time.Now())
 }
 
 type SpotifyPlaylistTrack struct {

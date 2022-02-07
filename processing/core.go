@@ -1,5 +1,10 @@
 package processing
 
+import (
+	"SpotifyTool/persistance/models"
+	"time"
+)
+
 var (
 	onLoginChannel       chan SpotifyClientLogin
 	onSpotifyTaskChannel chan SpotifyFetchTask
@@ -12,6 +17,8 @@ func Init() {
 
 	go HandleLogins()
 	go HandleTasks()
+
+	startRecurringTasks()
 }
 
 // GetLoginChannel fetches the channel on which a new SpotifyClientLogin can be posted
@@ -22,4 +29,23 @@ func GetLoginChannel() chan<- SpotifyClientLogin {
 // GetTaskChannel returns the (buffered) channel on which new SpotifyFetchTask items can be posted
 func GetTaskChannel() chan<- SpotifyFetchTask {
 	return onSpotifyTaskChannel
+}
+
+func startRecurringTasks() {
+	ticker := time.NewTicker(fetchPlaylistsInterval)
+	go func() {
+		for ; true; <-ticker.C {
+			// Fetch all tokens
+			var tokens []*models.ToolSpotifyAuthToken
+			db.Find(&tokens)
+
+			// Schedule fetch tasks for them
+			for _, token := range tokens {
+				onSpotifyTaskChannel <- SpotifyFetchTask{
+					ToolUserID: token.ToolUserID,
+					Task:       CheckPlaylistChanges,
+				}
+			}
+		}
+	}()
 }

@@ -16,8 +16,12 @@ var (
 	db  *gorm.DB
 )
 
-const maxPlaylistsPerPage = 50
-const maxTracksPerPage = 100
+const (
+	maxPlaylistsPerPage           = 50
+	maxTracksPerPage              = 100
+	fetchPlaylistsInterval        = 15 * time.Minute
+	fetchSpotifyPlaylistsInterval = 2 * time.Hour
+)
 
 func HandleTasks() {
 	authenticator := state.GetSpotifyAuthenticator()
@@ -43,6 +47,7 @@ func HandleTasks() {
 
 		// Do the task
 		if task.Task == CheckPlaylistChanges {
+			log.Println("Checking playlists changes for " + toolToken.ToolUser.DisplayName)
 			err := doCheckPlaylistChanges(toolToken.ToolUser, client)
 			if err != nil {
 				log.Println(err)
@@ -96,23 +101,34 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 
 			// Check if we have the playlist already
 			if currentPlaylistSnapshot := currentPlaylistIdToSnapshot[playlistId]; currentPlaylistSnapshot == "" {
-				// The user doesn't follow the playlist yet, this doesn't mean we don't track it yet tho.
+				// The user doesn't follow the playlist yet, this doesn't mean we don't track it yet tho. We'll need to check the database.
 				newPlaylists[playlistId] = foundPlaylist
-			} else if currentPlaylistSnapshot != foundPlaylist.SnapshotID {
-				// Snapshot has changed -> changes to the playlist have been made
-				fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
-					Local:  currentPlaylistIdToPlaylist[playlistId],
-					Remote: foundPlaylist,
-				})
+			} else {
+				// The user already follows the playlist
+				localPlaylist := currentPlaylistIdToPlaylist[playlistId]
 				delete(currentPlaylistIdToSnapshot, playlistId)
 
-				// TODO: Skip if by Spotify & updated < 1 hour ago
+				// Check if the playlist has changed
+				if currentPlaylistSnapshot != foundPlaylist.SnapshotID {
+					// Check if the playlist hasn't already been checked recently
+					if isRecentlyChecked(localPlaylist) {
+						// Already checked in the last [interval] minutes (probably by a different
+						continue
+					}
 
-				// Update the playlist meta
-				currentPlaylist := currentPlaylistIdToPlaylist[playlistId]
-				currentPlaylist.FromSimpleApiPlaylist(&foundPlaylist)
-				db.Save(&currentPlaylist) // TODO: Risky to update the snapshot before checking the changes?
-				// TODO: Set update time
+					// Snapshot has changed -> changes to the playlist have been made
+					fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
+						Local:  localPlaylist,
+						Remote: foundPlaylist,
+					})
+
+					// Update the playlist meta
+					localPlaylist.FromSimpleApiPlaylist(&foundPlaylist, false)
+				} else {
+					// Update the last checked time
+					localPlaylist.SetLastCheckedToNow()
+				}
+				db.Save(&localPlaylist)
 			}
 		}
 
@@ -131,7 +147,8 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 		db.Find(&foundNewPlaylist)
 		if foundNewPlaylist.SnapshotId == "" {
 			// Actually new playlist
-			foundNewPlaylist.FromSimpleApiPlaylist(&newPlaylist)
+			foundNewPlaylist.FromSimpleApiPlaylist(&newPlaylist, true)
+			foundNewPlaylist.SnapshotId = ""
 			db.Create(&foundNewPlaylist)
 			currentPlaylistIdToPlaylist[playlistId] = &foundNewPlaylist
 			fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
@@ -139,8 +156,8 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 				Remote: newPlaylist,
 			})
 		} else {
-			// We already have it... Has it changed tho?
-			if foundNewPlaylist.SnapshotId != newPlaylist.SnapshotID {
+			// We already have it... Has it changed tho? (or has it already recently been checked?)
+			if foundNewPlaylist.SnapshotId != newPlaylist.SnapshotID && !isRecentlyChecked(&foundNewPlaylist) {
 				fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
 					Local:  &foundNewPlaylist,
 					Remote: newPlaylist,
@@ -155,7 +172,13 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 	// Update the tracks for the given playlists
 	for _, updatePlaylist := range fetchTracksForPlaylists {
 		if err := updateTracksOfPlaylist(client, updatePlaylist); err != nil {
+			// TODO: Sentry?
 			log.Println(err)
+		} else {
+			// Save the update to the playlist
+			updatePlaylist.Local.SnapshotId = updatePlaylist.Remote.SnapshotID
+			updatePlaylist.Local.SetLastCheckedToNow()
+			db.Save(&updatePlaylist.Local)
 		}
 	}
 
@@ -169,9 +192,14 @@ func doCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 		return err
 	}
 
-	// Update the access token (if it has changed)
+	log.Println("Finished checking")
 
 	return nil
+}
+
+func isRecentlyChecked(localPlaylist *models.SpotifyPlaylist) bool {
+	// localPlaylist.IsAlreadyCheckedInLast(fetchPlaylistsInterval) ||
+	return localPlaylist.OwnerID == "spotify" && localPlaylist.IsAlreadyCheckedInLast(fetchSpotifyPlaylistsInterval)
 }
 
 func updateTracksOfPlaylist(client *spotify.Client, update updatePlaylist) error {
