@@ -1,6 +1,7 @@
-import axios from "axios";
 import {createStore} from "vuex";
 import {get, remove, set} from "./util/storage";
+import {getApi} from "./api/api";
+import router from "./router";
 
 const KEY_ACCESS_TOKEN = 'access_token';
 
@@ -9,30 +10,134 @@ const store = createStore({
     state() {
         return {
             accessToken: get(KEY_ACCESS_TOKEN),
+
+            /** @type {ToolUser} */
             user: undefined,
             /** @type {SpotifyPlaylist[]} */
             playlists: [],
+
+            /** @type {Toast[]} */
+            toasts: [],
         }
     },
     getters: {
         loggedIn: state => !!state.accessToken,
     },
     mutations: {
-        newAccessToken( state, payload ) {
-            state.accessToken = payload
-            set(KEY_ACCESS_TOKEN, payload)
+        _setAccessToken(state, {token, user}) {
+            state.accessToken = token
+            state.user = user
+            set(KEY_ACCESS_TOKEN, token)
         },
-        invalidateAccessToken( state, payload ) {
+        invalidateAccessToken(state, payload) {
             state.accessToken = ''
+            state.user = undefined
             remove(KEY_ACCESS_TOKEN)
         },
-        newPlaylists( state, playlists ) {
+
+
+        newPlaylists(state, playlists) {
             state.playlists = playlists
         },
-    }
+
+        /**
+         * @private shouldn't be used directly
+         * @see newAccessToken
+         */
+        _updateToasts(state, toasts) {
+            state.toasts = toasts
+        }
+    },
+    actions: {
+        /**
+         * Create a new toast
+         * @param {string} [id] Optional ID (otherwise one is generated
+         * @param {string} title
+         * @param {string} [text]
+         * @param {number} [closeInSeconds] if the toast should auto close & in how many seconds
+         * @param {string|'default'|'success'|'danger'|'warning'|'primary'|'secondary'} [type]
+         */
+        newToast(context, {id, title, text, closeInSeconds, type}) {
+            id = id ? id : (new Date()).getTime() + '-' + Math.random() * 10000
+            const toasts = [...context.state.toasts];
+            toasts.push({
+                id,
+                title,
+                text,
+                type,
+                autoClose: closeInSeconds && closeInSeconds > 0,
+                _timeLeft: closeInSeconds,
+            })
+            context.commit('_updateToasts', toasts)
+
+            return id
+        },
+        /**
+         * Close the given toast
+         * @param {string} id
+         */
+        closeToast(context, id) {
+            context.commit('_updateToasts', context.state.toasts.filter(t => t.id !== id))
+        },
+
+        /**
+         * Check & validate a new supplied token.
+         * @param context
+         * @param {string} token
+         * @param {function()} [onSuccess] Callback on success
+         * @returns {Promise<void>}
+         */
+        async newAccessToken(context, {token, onSuccess}) {
+            // Notify the user of what's happening
+            const accessTokenToast = 'AccessTokenToast';
+            await context.dispatch('newToast', {
+                id: accessTokenToast,
+                title: 'Getting user',
+                text: 'We\'re getting your user data, one moment please.',
+            })
+
+            // Fetch the user
+            try {
+                const user = (await getApi({withToken: token}).get('/auth/me')).data
+                context.commit('_setAccessToken', {user, token})
+                await context.dispatch('closeToast', accessTokenToast)
+                await context.dispatch('newToast', {
+                    title: 'Welcome back',
+                    text: 'You\'re logged in as ' + user.display_name,
+                    closeInSeconds: 5,
+                    type: 'success',
+                })
+
+                if (onSuccess) {
+                    onSuccess()
+                }
+            } catch {
+                context.commit('invalidateAccessToken')
+                await context.dispatch('closeToast', accessTokenToast)
+                await context.dispatch('newToast', {
+                    title: 'Invalid token',
+                    text: 'Unable to fetch user details. Try to logging in again.',
+                    type: 'danger',
+                })
+                await router.push('/login')
+            }
+        }
+    },
 })
 
+if (store.state.accessToken) {
+    store.dispatch('newAccessToken', {token: store.state.accessToken})
+}
+
 export default store
+
+/**
+ * @typedef {object} ToolUser
+ * @property {number} ID
+ * @property {string} display_name
+ * @property {string} spotify_id
+ * @property {{String: string}} [plan]
+ */
 
 /**
  * @typedef {object} SpotifyPlaylist

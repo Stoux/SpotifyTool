@@ -3,10 +3,17 @@ import store from "../store";
 import {API_ROOT} from "../constants";
 
 
-
-export function getApi() {
+/**
+ *
+ * @param {GetApiOptions} [options]
+ *
+ * @returns {AxiosInstance}
+ */
+export function getApi(options) {
     const headers = {};
-    if (store.state.accessToken) {
+    if ( options && options.withToken ) {
+        headers.Authorization = options.withToken
+    } else if (store.state.accessToken) {
         headers.Authorization = store.state.accessToken
     }
 
@@ -16,3 +23,7 @@ export function getApi() {
     })
 }
 
+/**
+ * @typedef {interface} GetApiOptions
+ * @property {string} [withToken]
+ */

@@ -12,13 +12,28 @@ const router = createRouter({
     history: createWebHistory(),
     routes: [
         // Account / general routes
-        { path: '/', component: Home },
-        { path: '/login', component: Login },
-        { path: '/account', component: Account },
-        { path : '/authenticated', redirect: to => {
-            store.commit('newAccessToken', to.query.token)
-            return { path: '/account', query: {} }
-        }},
+        {path: '/', component: Home},
+        {path: '/login', component: Login},
+        {path: '/account', component: Account},
+        {
+            path: '/authenticated', redirect: to => {
+                store.dispatch('newAccessToken', {
+                    token: to.query.token, onSuccess: () => {
+                        // Redirect to home
+                        router.push('/')
+
+                        // Check if first time login
+                        store.dispatch('newToast', {
+                            title: 'First time login',
+                            text: 'It might take a while before all your data has been indexed if this is your first login...',
+                            type: 'primary',
+                            closeInSeconds: 10,
+                        })
+                    }
+                })
+                return {path: '/login', query: {}}
+            }
+        },
 
         // Playlist routes
         {

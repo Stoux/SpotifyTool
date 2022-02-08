@@ -1,32 +1,33 @@
 <template>
   <div>
-    <div v-if="!account">
+    <div v-if="!user">
       Loading...
     </div>
-    <div v-else>
-      <h1>Hi {{ account.display_name }}</h1>
+    <div class="p-3" v-else>
+      <h1>Hi {{ user.display_name }}</h1>
+      <button class="btn btn-danger" @click="logout">
+        Logout
+      </button>
     </div>
+
   </div>
 </template>
 
 <script>
-import {getApi} from "../api/api";
+import {mapState} from "vuex";
 
 export default {
   name: "Account",
-  data() {
-    return {
-      account: undefined,
-    }
+  computed: {
+    ...mapState([
+      'user',
+    ]),
   },
-  mounted() {
-    getApi().get('/auth/me').then(result => {
-      this.account = result.data
-    }).catch(error => {
+  methods: {
+    logout() {
       this.$store.commit('invalidateAccessToken')
       this.$router.push('/login')
-    })
-
+    }
   }
 }
 </script>

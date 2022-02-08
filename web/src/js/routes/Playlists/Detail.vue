@@ -75,7 +75,7 @@ import {getApi} from "../../api/api";
 const perPage = 25
 
 export default {
-  name: "Detail",
+  name: "PlaylistDetail",
   props: {
     id: String,
   },

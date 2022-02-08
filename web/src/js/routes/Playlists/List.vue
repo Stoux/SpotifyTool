@@ -24,7 +24,7 @@
 import {mapState} from "vuex";
 
 export default {
-  name: "List",
+  name: "PlaylistList",
   data() {
     return {
       search: '',

@@ -10,7 +10,7 @@ import {getApi} from "../../api/api";
 import {mapState} from "vuex";
 
 export default {
-  name: "Overview",
+  name: "PlaylistOverview",
   computed: {
     ...mapState([
         'playlists'
