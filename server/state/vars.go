@@ -31,9 +31,7 @@ func ResolveAddress() {
 	if newFrontendPath := os.Getenv("SPOTIFY_TOOL_FRONTEND_PATH"); newFrontendPath != "" {
 		frontendPath = newFrontendPath
 	}
-	if shouldServeFrontend := os.Getenv("SPOTIFY_TOOL_SERVE_FRONTEND"); shouldServeFrontend != "" {
-		serveFrontend = shouldServeFrontend == "true" || shouldServeFrontend == "1" || shouldServeFrontend == "yes"
-	}
+	serveFrontend = GetBoolLikeEnv("SPOTIFY_TOOL_SERVE_FRONTEND", serveFrontend)
 
 	spotifyRedirectUri := apiRoot + "/auth/callback"
 	authenticator = spotifyauth.New(spotifyauth.WithRedirectURL(spotifyRedirectUri), spotifyauth.WithScopes(
@@ -79,4 +77,12 @@ func GetApiPort() string {
 
 func GetSpotifyAuthenticator() *spotifyauth.Authenticator {
 	return authenticator
+}
+
+func GetBoolLikeEnv(key string, defaultValue bool) bool {
+	if envValue := os.Getenv(key); envValue != "" {
+		return envValue == "true" || envValue == "1" || envValue == "yes"
+	} else {
+		return defaultValue
+	}
 }

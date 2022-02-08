@@ -3,8 +3,11 @@ package processing
 import (
 	"SpotifyTool/persistance"
 	"SpotifyTool/persistance/models"
+	"SpotifyTool/processing/constants"
+	"SpotifyTool/server/state"
 	"context"
 	"gorm.io/gorm"
+	"log"
 	"time"
 )
 
@@ -38,7 +41,12 @@ func GetTaskChannel() chan<- SpotifyFetchTask {
 }
 
 func startRecurringTasks() {
-	ticker := time.NewTicker(fetchPlaylistsInterval)
+	if hasRecurring := state.GetBoolLikeEnv("SPOTIFY_TOOL_START_RECURRING_TASKS", true); !hasRecurring {
+		log.Println("Recurring tasks are disabled through due to ENV SPOTIFY_TOOL_START_RECURRING_TASKS")
+		return
+	}
+
+	ticker := time.NewTicker(constants.FetchPlaylistsInterval)
 	go func() {
 		for ; true; <-ticker.C {
 			// Fetch all tokens
