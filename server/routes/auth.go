@@ -65,6 +65,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	user, err := client.CurrentUser(r.Context())
 	if err != nil {
 		incorrectCallback(w, r, "Successfully authenticated but failed to fetch user data?")
+		return
 	}
 
 	// Pass the user to processing for account creation & further handling
