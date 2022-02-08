@@ -1,5 +1,6 @@
 const mix = require('laravel-mix');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const Dotenv = require('dotenv-webpack')
 
 const {
     MIX_BROWSERSYNC_PROXY = 'http://localhost:8040',
@@ -48,6 +49,9 @@ mix.webpackConfig({
                     }
                 },
             ],
+        }),
+        new Dotenv({
+            systemvars: true
         }),
     ]
 });

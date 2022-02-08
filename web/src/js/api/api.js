@@ -1,5 +1,6 @@
 import axios from "axios";
 import store from "../store";
+import {API_ROOT} from "../constants";
 
 
 
@@ -10,7 +11,7 @@ export function getApi() {
     }
 
     return axios.create({
-        baseURL: 'http://localhost:8080/',
+        baseURL: API_ROOT,
         headers,
     })
 }
