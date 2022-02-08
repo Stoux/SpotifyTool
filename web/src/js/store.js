@@ -52,8 +52,12 @@ export default store
  * @property {string} ID
  * @property {string} Name
  * @property {string} Artists
+ * @property {string} Album
  * @property {string} CreatedAt
  * @property {{Time: string}} AddedAt
+ * @property {{String: string, Valid: boolean}} AddedBy
  * @property {string} DeletedAt
  * @property {string} TrackId
+ * @property {string|'added'|'removed'} type
+ * @property {string} timeline
  */

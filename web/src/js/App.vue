@@ -1,6 +1,6 @@
 <template>
-  <main style="display: flex; flex-direction: row;">
-    <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px; height: 100vh">
+  <main class="d-flex flex-row">
+    <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark vh-100" style="width: 280px;">
       <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
         <span class="fs-4">Spotify Tools</span>
       </a>
@@ -31,11 +31,10 @@
         </li>
       </ul>
     </div>
-    <div class="container">
+    <div class="container vh-100 overflow-auto">
       <router-view></router-view>
     </div>
   </main>
-
 </template>
 <script>
 

@@ -5,9 +5,11 @@ import (
 	"SpotifyTool/persistance/models"
 	"SpotifyTool/server/handlers"
 	"github.com/gorilla/mux"
-	"github.com/zmb3/spotify/v2"
 	"log"
+	"math"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 func PlaylistRoutes(router *mux.Router) {
@@ -33,27 +35,39 @@ func getPlaylistTracks(w http.ResponseWriter, r *http.Request, user models.ToolU
 		return
 	}
 
-	// TODO: Offset & limit
-	//offset := r.URL.Query().Get("offset")
-	//limit := r.URL.Query().Get("limit")
+	offset := fetchNumericQuery(r, "offset", 0, math.MaxInt, 0)
+	limit := fetchNumericQuery(r, "limit", 1, 1000, 100)
 
 	// Check if the user has access to the playlist
-	// TODO: Order by last relevant modification
-	var tracks *[]models.SpotifyPlaylistTrack
-	find := persistance.Db.Unscoped().
-		Where("spotify_playlist_id = ?", playlistId).
-		Limit(100).
-		Offset(0).
-		Order("added_at desc").
-		Find(&tracks)
-
-	if find.Error != nil {
-		log.Println(find.Error)
+	var tracks []trackEvent
+	db := persistance.Db
+	err := db.Raw("(? UNION ?) ORDER BY `timeline` DESC LIMIT ?, ?",
+		db.Unscoped().Table("spotify_playlist_tracks").Select("*", "'added' as `type`", "added_at as `timeline`").
+			Where("spotify_playlist_id = ?", playlistId),
+		db.Unscoped().Table("spotify_playlist_tracks").Select("*", "'removed' as `type`", "deleted_at as `timeline`").
+			Where("spotify_playlist_id = ?", playlistId).
+			Where("deleted_at IS NOT NULL"),
+		offset,
+		limit,
+	).Scan(&tracks)
+	if err != nil {
+		log.Println(err)
 	}
-
 	handlers.OutputJson(w, tracks)
 }
 
-type trackResult struct {
-	tracks *[]spotify.PlaylistTrack
+func fetchNumericQuery(r *http.Request, key string, minValue int, maxValue int, defaultValue int) int {
+	if arg := r.URL.Query().Get(key); arg != "" {
+		if v, err := strconv.Atoi(r.URL.Query().Get(key)); err == nil && v >= minValue && v <= maxValue {
+			return v
+		}
+	}
+
+	return defaultValue
+}
+
+type trackEvent struct {
+	models.SpotifyPlaylistTrack
+	Type     string    `json:"type"`
+	Timeline time.Time `json:"timeline"`
 }
