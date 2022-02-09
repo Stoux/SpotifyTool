@@ -26,6 +26,16 @@ export default {
       const result = await getApi().get("/auth/start")
       window.location.href = result.data.url
     }
+  },
+  mounted() {
+    const error = this.$route.query.error;
+    if (error) {
+      this.$store.dispatch('newToast', {
+        title: 'Auth error',
+        text: error,
+        type: 'danger',
+      })
+    }
   }
 }
 

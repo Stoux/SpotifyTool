@@ -24,7 +24,7 @@ func Auth(handler func(writer http.ResponseWriter, request *http.Request, userSp
 		}
 
 		// Otherwise, we're going to return a 403
-		writer.WriteHeader(http.StatusForbidden)
+		writer.WriteHeader(http.StatusUnauthorized)
 	}
 }
 

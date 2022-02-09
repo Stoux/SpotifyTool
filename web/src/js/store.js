@@ -4,6 +4,7 @@ import {getApi} from "./api/api";
 import router from "./router";
 
 const KEY_ACCESS_TOKEN = 'access_token';
+const ACCESS_TOKEN_TOAST_ID = 'AccessTokenToast';
 
 
 const store = createStore({
@@ -14,7 +15,7 @@ const store = createStore({
             /** @type {ToolUser} */
             user: undefined,
             /** @type {SpotifyPlaylist[]} */
-            playlists: [],
+            playlists: undefined,
 
             /** @type {Toast[]} */
             toasts: [],
@@ -36,8 +37,16 @@ const store = createStore({
         },
 
 
+        /**
+         *
+         * @param state
+         * @param {SpotifyPlaylist[]} playlists
+         */
         newPlaylists(state, playlists) {
-            state.playlists = playlists
+            state.playlists = playlists.sort((a, b) => a.name.localeCompare(b.name))
+        },
+        newBackupConfigs(state, configs) {
+            state.backupConfigs = configs
         },
 
         /**
@@ -85,13 +94,13 @@ const store = createStore({
          * @param context
          * @param {string} token
          * @param {function()} [onSuccess] Callback on success
+         * @param {bool|false} [noSuccessToast] Hide the success toast
          * @returns {Promise<void>}
          */
-        async newAccessToken(context, {token, onSuccess}) {
+        async newAccessToken(context, {token, onSuccess, noSuccessToast}) {
             // Notify the user of what's happening
-            const accessTokenToast = 'AccessTokenToast';
             await context.dispatch('newToast', {
-                id: accessTokenToast,
+                id: ACCESS_TOKEN_TOAST_ID,
                 title: 'Getting user',
                 text: 'We\'re getting your user data, one moment please.',
             })
@@ -100,7 +109,7 @@ const store = createStore({
             try {
                 const user = (await getApi({withToken: token}).get('/auth/me')).data
                 context.commit('_setAccessToken', {user, token})
-                await context.dispatch('closeToast', accessTokenToast)
+                await context.dispatch('closeToast', ACCESS_TOKEN_TOAST_ID)
                 await context.dispatch('newToast', {
                     title: 'Welcome back',
                     text: 'You\'re logged in as ' + user.display_name,
@@ -112,16 +121,45 @@ const store = createStore({
                     onSuccess()
                 }
             } catch {
-                context.commit('invalidateAccessToken')
-                await context.dispatch('closeToast', accessTokenToast)
-                await context.dispatch('newToast', {
-                    title: 'Invalid token',
-                    text: 'Unable to fetch user details. Try to logging in again.',
-                    type: 'danger',
-                })
-                await router.push('/login')
+                await context.dispatch('_onInvalidAccessToken')
             }
-        }
+        },
+
+        async _onInvalidAccessToken(context) {
+            context.commit('invalidateAccessToken')
+            await context.dispatch('closeToast', ACCESS_TOKEN_TOAST_ID)
+            await context.dispatch('newToast', {
+                title: 'Invalid token',
+                text: 'Unable to fetch user details. Try to logging in again.',
+                type: 'danger',
+            })
+            await router.push('/login')
+        },
+
+        /**
+         * @param context
+         * @param {{forceFetch: bool}} payload
+         * @returns {Promise<void>}
+         */
+        async fetchPlaylists(context, payload ) {
+            if (!(payload && payload.forceFetch) && context.state.playlists !== undefined) {
+                // Already fetching or no results.
+                return
+            }
+            context.commit('newPlaylists', [])
+            try {
+                const result = await getApi().get('playlists')
+                context.commit('newPlaylists', result.data)
+            } catch {
+                context.commit('newPlaylists', undefined)
+                await context.dispatch('newToast', {
+                    title: 'Error',
+                    text: 'Something went wrong trying to fetch the playlists, try again.',
+                    type: 'danger',
+                    closeInSeconds: 10,
+                })
+            }
+        },
     },
 })
 

@@ -100,7 +100,7 @@ export default {
      * @returns {SpotifyPlaylist}
      */
     playlist() {
-      return this.playlists.find(p => p.id === this.id)
+      return this.playlists && this.playlists.find(p => p.id === this.id)
     },
   },
   watch: {

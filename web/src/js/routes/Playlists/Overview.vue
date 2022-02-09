@@ -6,21 +6,18 @@
 </template>
 
 <script>
-import {getApi} from "../../api/api";
 import {mapState} from "vuex";
 
 export default {
   name: "PlaylistOverview",
   computed: {
     ...mapState([
-        'playlists'
+      'playlists'
     ]),
   },
   mounted() {
-    if (!this.playlists || !this.playlists.length) {
-      getApi().get('playlists').then(result => {
-        this.$store.commit('newPlaylists', result.data)
-      })
+    if (this.playlists === undefined) {
+      this.$store.dispatch('fetchPlaylists')
     }
   }
 }

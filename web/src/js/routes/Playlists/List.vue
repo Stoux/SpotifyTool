@@ -35,7 +35,7 @@ export default {
       'playlists',
     ]),
     displayPlaylists() {
-      let playlists = this.playlists;
+      let playlists = this.playlists ? this.playlists : [];
 
       // Filter
       if (this.search) {
