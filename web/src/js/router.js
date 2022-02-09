@@ -6,6 +6,9 @@ import store from "./store";
 import PlaylistOverview from "./routes/Playlists/Overview";
 import PlaylistList from "./routes/Playlists/List";
 import PlaylistDetail from "./routes/Playlists/Detail";
+import BackupOverview from "./routes/Backup/Overview";
+import BackupList from "./routes/Backup/List";
+import BackupEdit from "./routes/Backup/Edit";
 
 
 const router = createRouter({
@@ -51,6 +54,30 @@ const router = createRouter({
                 }
             ]
         },
+
+        // Backup / Sync configs
+        {
+            path: '/backups',
+            component: BackupOverview,
+            children: [
+                {
+                    path: '',
+                    component: BackupList,
+                },
+                {
+                    path: 'new',
+                    component: BackupEdit,
+                    props: {
+                        newSync: true,
+                    }
+                },
+                {
+                    path: ':id',
+                    component: BackupEdit,
+                    props: true,
+                }
+            ],
+        }
 
 
     ],

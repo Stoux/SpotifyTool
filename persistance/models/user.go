@@ -21,7 +21,8 @@ type ToolUser struct {
 
 	// Relations
 	// Playlists contain all playlists that this user has in their library (or at least that we can see)
-	Playlists []*SpotifyPlaylist `gorm:"many2many:tool_user_playlists"`
+	Playlists             []*SpotifyPlaylist `gorm:"many2many:tool_user_playlists"`
+	PlaylistBackupConfigs []*PlaylistBackupConfig
 }
 
 // ToolSpotifyAuthToken contains OAUth tokens used to access the Spotify API

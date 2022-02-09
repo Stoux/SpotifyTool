@@ -16,6 +16,8 @@ const store = createStore({
             user: undefined,
             /** @type {SpotifyPlaylist[]} */
             playlists: undefined,
+            /** @type {PlaylistBackupConfig[]} */
+            backupConfigs: undefined,
 
             /** @type {Toast[]} */
             toasts: [],
@@ -160,6 +162,31 @@ const store = createStore({
                 })
             }
         },
+        /**
+         * @param context
+         * @param {{forceFetch: bool}} payload
+         * @returns {Promise<void>}
+         */
+        async fetchBackupConfigs(context, payload ) {
+            if (!(payload && payload.forceFetch) && context.state.backupConfigs !== undefined) {
+                // Already fetching or no results.
+                return
+            }
+            context.commit('newBackupConfigs', [])
+            try {
+                const result = await getApi().get('playlist-backups')
+                context.commit('newBackupConfigs', result.data)
+            } catch {
+                context.commit('newBackupConfigs', undefined)
+                await context.dispatch('newToast', {
+                    title: 'Error',
+                    text: 'Something went wrong trying to fetch the backup configs, try again.',
+                    type: 'danger',
+                    closeInSeconds: 10,
+                })
+            }
+        },
+
     },
 })
 
@@ -203,4 +230,14 @@ export default store
  * @property {string} TrackId
  * @property {string|'added'|'removed'} type
  * @property {string} timeline
+ */
+
+/**
+ * @typedef {object} PlaylistBackupConfig
+ *
+ * @property {number} ID
+ * @property {SpotifyPlaylist} source
+ * @property {SpotifyPlaylist} target
+ * @property {string} last_sync
+ * @property {string} [comment] Optional comment by the user
  */

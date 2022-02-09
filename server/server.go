@@ -31,6 +31,7 @@ func api(shutdown chan bool) {
 	routes.GeneralRoutes(router)
 	routes.AuthRoutes(router)
 	routes.PlaylistRoutes(router)
+	routes.PlaylistBackupRoutes(router)
 
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
