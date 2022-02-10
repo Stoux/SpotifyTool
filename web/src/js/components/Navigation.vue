@@ -16,6 +16,11 @@
         </router-link>
       </li>
       <li class="nav-item">
+        <router-link to="/playlists/combined-changelog" active-class="active" class="nav-link text-white">
+          Combined changelog <small>(all playlists combined)</small>
+        </router-link>
+      </li>
+      <li class="nav-item">
         <router-link to="/backups" active-class="active" class="nav-link text-white">
           Backups / Sync
         </router-link>

@@ -9,6 +9,7 @@ import PlaylistDetail from "./routes/Playlists/Detail";
 import BackupOverview from "./routes/Backup/Overview";
 import BackupList from "./routes/Backup/List";
 import BackupEdit from "./routes/Backup/Edit";
+import CombinedPlaylistChangelog from "./routes/Playlists/CombinedChangelog";
 
 
 const router = createRouter({
@@ -46,6 +47,10 @@ const router = createRouter({
                 {
                     path: '',
                     component: PlaylistList
+                },
+                {
+                    path: 'combined-changelog',
+                    component: CombinedPlaylistChangelog,
                 },
                 {
                     path: ':id',

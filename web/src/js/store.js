@@ -16,6 +16,8 @@ const store = createStore({
             user: undefined,
             /** @type {SpotifyPlaylist[]} */
             playlists: undefined,
+            /** @type {Object.<string, SpotifyPlaylist>} */
+            idToPlaylist: undefined,
             /** @type {PlaylistBackupConfig[]} */
             backupConfigs: undefined,
 
@@ -46,6 +48,8 @@ const store = createStore({
          */
         newPlaylists(state, playlists) {
             state.playlists = playlists.sort((a, b) => a.name.localeCompare(b.name))
+            state.idToPlaylist = {}
+            state.playlists.forEach(p => state.idToPlaylist[p.id] = p)
         },
         newBackupConfigs(state, configs) {
             state.backupConfigs = configs
@@ -228,6 +232,7 @@ export default store
  * @property {{String: string, Valid: boolean}} AddedBy
  * @property {string} DeletedAt
  * @property {string} TrackId
+ * @property {string} SpotifyPlaylistID
  * @property {string|'added'|'removed'} type
  * @property {string} timeline
  */

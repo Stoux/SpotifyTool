@@ -26,6 +26,11 @@ type SpotifyPlaylist struct {
 	Tracks []*SpotifyPlaylistTrack
 }
 
+type ToolUserPlaylist struct {
+	ToolUserID        int
+	SpotifyPlaylistID string
+}
+
 func (sp *SpotifyPlaylist) FromSimpleApiPlaylist(playlist *spotify.SimplePlaylist, changeSnapshot bool) {
 	sp.ID = playlist.ID.String()
 	if changeSnapshot {
