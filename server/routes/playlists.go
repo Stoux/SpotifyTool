@@ -42,7 +42,7 @@ func getPlaylistTracks(w http.ResponseWriter, r *http.Request, user models.ToolU
 	// Check if the user has access to the playlist
 	var tracks []trackEvent
 	db := persistance.Db
-	err := db.Raw("(? UNION ?) ORDER BY `timeline` DESC LIMIT ?, ?",
+	err := db.Raw("(? UNION ALL ?) ORDER BY `timeline` DESC LIMIT ?, ?",
 		db.Unscoped().Table("spotify_playlist_tracks").Select("*", "'added' as `type`", "added_at as `timeline`").
 			Where("spotify_playlist_id = ?", playlistId),
 		db.Unscoped().Table("spotify_playlist_tracks").Select("*", "'removed' as `type`", "deleted_at as `timeline`").
@@ -96,7 +96,7 @@ func getCombinedChangelog(w http.ResponseWriter, r *http.Request, user models.To
 	// Check if the user has access to the playlist
 	var tracks []trackEvent
 	db := persistance.Db
-	err := db.Debug().Raw("(? UNION ?) ORDER BY `timeline` DESC LIMIT ?, ?",
+	err := db.Debug().Raw("(? UNION ALL ?) ORDER BY `timeline` DESC LIMIT ?, ?",
 		db.Unscoped().Table("spotify_playlist_tracks").Select("*", "'added' as `type`", "added_at as `timeline`").
 			Where(playlistWhere, playlistIds...),
 		db.Unscoped().Table("spotify_playlist_tracks").Select("*", "'removed' as `type`", "deleted_at as `timeline`").
