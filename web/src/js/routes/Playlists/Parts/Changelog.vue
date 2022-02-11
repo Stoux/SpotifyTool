@@ -53,7 +53,7 @@ export default {
         this.$emit('next-page')
       }
     }, {
-      // root: document.querySelector('.container'),
+      root: document.querySelector('.js-observe-container'),
       rootMargin: '400px',
       threshold: 0,
     })

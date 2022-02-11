@@ -2,7 +2,7 @@
   <div>
     <main class="d-flex flex-row bg-black text-white">
       <Navigation/>
-      <div class="container-fluid vh-100 overflow-auto">
+      <div class="container-fluid vh-100 overflow-auto js-observe-container">
         <router-view></router-view>
       </div>
     </main>
