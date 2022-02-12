@@ -129,7 +129,17 @@ func DoCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 	}
 
 	// Remove connection between user & playlists that are still in 'currentPlaylistIdToSnapshot', the user doesn't follow them anymore
-	// TODO: Remove connection
+	if len(currentPlaylistIdToSnapshot) > 0 {
+		newPosition := 0
+		for _, playlist := range currentPlaylists {
+			if _, deleted := currentPlaylistIdToSnapshot[playlist.ID]; !deleted {
+				currentPlaylists[newPosition] = playlist
+				newPosition++
+			}
+		}
+		currentPlaylists = currentPlaylists[:newPosition]
+	}
+
 	// TODO: Playlist access history
 
 	// Update the relation between the user & the playlists
