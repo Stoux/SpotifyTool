@@ -36,7 +36,8 @@ export default {
   },
   computed: {
     resolvedPlaylist() {
-      return this.playlists && this.playlists.find(p => p.id === this.modelValue)
+      const modelValue = parseInt(this.modelValue, 10);
+      return this.playlists && this.playlists.find(p => p.id === modelValue)
     },
   }
 

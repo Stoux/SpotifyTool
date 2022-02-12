@@ -10,7 +10,6 @@
 </template>
 
 <script>
-import {getApi} from "../../api/api";
 import {mapState} from "vuex";
 
 export default {
@@ -18,12 +17,11 @@ export default {
   computed: {
     ...mapState([
         'backupConfigs',
+        'playlists',
     ]),
   },
   mounted() {
-    if (this.backupConfigs === undefined) {
-      this.$store.dispatch('fetchBackupConfigs')
-    }
+    this.$store.dispatch('fetchBackupConfigs')
   }
 }
 </script>

@@ -1,2 +1,10 @@
 @import "bootstrap/scss/bootstrap";
 
+.modal-dialog {
+  margin-top: 25vh;
+}
+
+.modal.show {
+  // Doesn't work in Firefox..
+  backdrop-filter: brightness(0.5);
+}
