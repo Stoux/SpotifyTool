@@ -1,6 +1,6 @@
 const mix = require('laravel-mix');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 const Dotenv = require('dotenv-webpack')
+const fs = require('fs')
 
 const {
     MIX_BROWSERSYNC_PROXY = 'http://localhost:8040',
@@ -22,7 +22,7 @@ mix.sass('web/src/scss/styles.scss', 'web/build')
         autoprefixer: false,
     });
 
-
+mix.copy('web/src/index.html', 'web/build/index.html')
 
 // Configuration
 mix.version();
@@ -40,20 +40,24 @@ if (MIX_BROWSERSYNC_PROXY) {
 
 mix.webpackConfig({
     plugins: [
-        new CopyWebpackPlugin({
-            patterns: [
-                {
-                    from: 'src/index.html',
-                    to: 'index.html',
-                    context: "web",
-                    globOptions: {
-                        ignore: ['.DS_Store']
-                    }
-                },
-            ],
-        }),
         new Dotenv({
             systemvars: true
         }),
     ]
 });
+
+// Replace the asset URLs in the index.html with their versioned URL
+mix.then(() => {
+    const manifestPath = 'web/build/mix-manifest.json';
+    const htmlPath = 'web/build/index.html';
+
+    if (fs.existsSync(manifestPath) && fs.existsSync(htmlPath)) {
+        // Read the Manifest file & load the index.html
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, {encoding: 'utf8'}));
+        let htmlContents = fs.readFileSync(htmlPath, { encoding: 'utf8'});
+        Object.keys(manifest).forEach(key => {
+            htmlContents = htmlContents.replace(`"${key}"`, `"${manifest[key]}"`);
+        })
+        fs.writeFileSync(htmlPath, htmlContents, { encoding: "utf8"})
+    }
+})

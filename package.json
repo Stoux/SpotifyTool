@@ -20,7 +20,6 @@
   "devDependencies": {
     "browser-sync": "^2.27.7",
     "browser-sync-webpack-plugin": "^2.3.0",
-    "copy-webpack-plugin": "^10.2.4",
     "laravel-mix": "^6.0.41",
     "sass": "^1.49.7",
     "sass-loader": "^12.4.0",
