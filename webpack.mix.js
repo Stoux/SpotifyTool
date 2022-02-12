@@ -28,13 +28,15 @@ mix.sass('web/src/scss/styles.scss', 'web/build')
 mix.version();
 mix.sourceMaps(false, 'inline-source-map');
 
-mix.browserSync({
-    notify: true,
-    proxy: MIX_BROWSERSYNC_PROXY,
-    files: [
-        'web/build/',
-    ]
-});
+if (MIX_BROWSERSYNC_PROXY) {
+    mix.browserSync({
+        notify: true,
+        proxy: MIX_BROWSERSYNC_PROXY,
+        files: [
+            'web/build/',
+        ]
+    });
+}
 
 mix.webpackConfig({
     plugins: [
