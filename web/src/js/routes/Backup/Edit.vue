@@ -6,6 +6,7 @@
       <div class="p-2 w-50">
         <PlaylistPicker title="From playlist"
                         :disabled="disabled"
+                        :group-by-user="true"
                         v-model="source"
                         :playlists="playlists ? playlists : []"/>
       </div>
