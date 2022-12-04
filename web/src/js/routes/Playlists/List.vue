@@ -9,6 +9,9 @@
         <div style="display: flex;">
           <span>{{ playlist.name }}</span>
           <div style="flex-grow: 1"></div>
+          <span class="badge bg-success rounded-pill m-1" v-if="playlist.is_tracked">
+            Tracking
+          </span>
           <span class="badge bg-secondary rounded-pill m-1" v-if="playlist.collaborative">
             Collab
           </span>

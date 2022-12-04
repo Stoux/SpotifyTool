@@ -4,6 +4,7 @@ import (
 	"SpotifyTool/persistance/models"
 	"SpotifyTool/processing/tasks"
 	"SpotifyTool/server/state"
+	"github.com/getsentry/sentry-go"
 	"github.com/zmb3/spotify/v2"
 	"log"
 )
@@ -35,7 +36,7 @@ func HandleTasks() {
 			err := tasks.DoCheckPlaylistChanges(toolToken.ToolUser, client)
 			if err != nil {
 				log.Println(err)
-				// TODO SEntry
+				sentry.CaptureException(err)
 				return
 			}
 		} else if task.Task == BackupPlaylists {

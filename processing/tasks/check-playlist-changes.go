@@ -5,7 +5,9 @@ import (
 	"SpotifyTool/persistance/models"
 	"SpotifyTool/processing/constants"
 	"context"
+	"github.com/getsentry/sentry-go"
 	"github.com/zmb3/spotify/v2"
+	"gorm.io/gorm/clause"
 	"log"
 	"time"
 )
@@ -15,14 +17,20 @@ func DoCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 	ctx = context.Background()
 
 	// Fetch all playlists this user already has in our database
-	db.Model(&user).Association("Playlists").Find(&user.Playlists)
-	currentPlaylists := user.Playlists
+	db.Model(&user).Debug().Preload("SpotifyPlaylist").Association("Playlists").Find(&user.Playlists)
+	userPlaylists := user.Playlists
+	currentPlaylists := make([]models.SpotifyPlaylist, len(userPlaylists))
+	isPlaylistChecked := map[string]bool{}
+	for i, userPlaylist := range userPlaylists {
+		currentPlaylists[i] = userPlaylist.SpotifyPlaylist
+		isPlaylistChecked[userPlaylist.SpotifyPlaylistID] = userPlaylist.IsTracked
+	}
 
 	// Map to their snapshot ID
 	currentPlaylistIdToPlaylist := map[string]*models.SpotifyPlaylist{}
 	currentPlaylistIdToSnapshot := map[string]string{}
 	for _, currentPlaylist := range currentPlaylists {
-		currentPlaylistIdToPlaylist[currentPlaylist.ID] = currentPlaylist
+		currentPlaylistIdToPlaylist[currentPlaylist.ID] = &currentPlaylist
 		currentPlaylistIdToSnapshot[currentPlaylist.ID] = currentPlaylist.SnapshotId
 	}
 
@@ -37,7 +45,7 @@ func DoCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 		playlistsPage, err := client.GetPlaylistsForUser(ctx, user.SpotifyId, spotify.Limit(constants.MaxPlaylistsPerPage), spotify.Offset(offset))
 		if err != nil {
 			log.Println(err)
-			// TODO: Better error handling?
+			sentry.CaptureException(err)
 			return err
 		}
 
@@ -56,6 +64,11 @@ func DoCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 
 				// Check if the playlist has changed
 				if currentPlaylistSnapshot != foundPlaylist.SnapshotID {
+					// Does the user want to check this list?
+					if !isPlaylistChecked[foundPlaylist.ID.String()] {
+						continue
+					}
+
 					// Check if the playlist hasn't already been checked recently
 					if isRecentlyChecked(localPlaylist) {
 						// Already checked in the last [interval] minutes (probably by a different
@@ -94,16 +107,18 @@ func DoCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 		if foundNewPlaylist.SnapshotId == "" {
 			// Actually new playlist
 			foundNewPlaylist.FromSimpleApiPlaylist(&newPlaylist, true)
-			foundNewPlaylist.SnapshotId = ""
+			foundNewPlaylist.SnapshotId = "-"
+			foundNewPlaylist.LastChecked = time.Unix(0, 0)
 			db.Create(&foundNewPlaylist)
-			currentPlaylistIdToPlaylist[playlistId] = &foundNewPlaylist
-			fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
-				Local:  &foundNewPlaylist,
-				Remote: newPlaylist,
-			})
+			if foundNewPlaylist.ShouldBeCheckedByDefault() {
+				fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
+					Local:  &foundNewPlaylist,
+					Remote: newPlaylist,
+				})
+			}
 		} else {
-			// We already have it... Has it changed tho? (or has it already recently been checked?)
-			if foundNewPlaylist.SnapshotId != newPlaylist.SnapshotID && !isRecentlyChecked(&foundNewPlaylist) {
+			// We already have it... Has it changed tho? (or has it already recently been checked?) and do we want to check it?
+			if foundNewPlaylist.ShouldBeCheckedByDefault() && foundNewPlaylist.SnapshotId != newPlaylist.SnapshotID && !isRecentlyChecked(&foundNewPlaylist) {
 				fetchTracksForPlaylists = append(fetchTracksForPlaylists, updatePlaylist{
 					Local:  &foundNewPlaylist,
 					Remote: newPlaylist,
@@ -112,7 +127,8 @@ func DoCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 		}
 
 		// Add the playlist to the user's playlists
-		currentPlaylists = append(currentPlaylists, &foundNewPlaylist)
+		isPlaylistChecked[foundNewPlaylist.ID] = foundNewPlaylist.ShouldBeCheckedByDefault()
+		currentPlaylists = append(currentPlaylists, foundNewPlaylist)
 	}
 
 	// Update the tracks for the given playlists
@@ -142,15 +158,41 @@ func DoCheckPlaylistChanges(user models.ToolUser, client *spotify.Client) (err e
 
 	// TODO: Playlist access history
 
-	// Update the relation between the user & the playlists
-	if err := db.Model(&user).Association("Playlists").Replace(currentPlaylists); err != nil {
-		log.Println(err)
-		return err
+	err2 := updateUserPlaylists(user, currentPlaylists, isPlaylistChecked)
+	if err2 != nil {
+		sentry.CaptureException(err2)
+		return err2
 	}
 
 	log.Println("Finished checking")
 
 	return nil
+}
+
+func updateUserPlaylists(user models.ToolUser, currentPlaylists []models.SpotifyPlaylist, isPlaylistChecked map[string]bool) error {
+	// Update the relation between the user & the playlists
+	// => Map back to UserPlaylist entries
+	newUserPlaylists := make([]models.ToolUserPlaylist, len(currentPlaylists))
+	playlistIds := make([]string, len(newUserPlaylists))
+	for i, newPlaylist := range currentPlaylists {
+		newUserPlaylists[i] = models.ToolUserPlaylist{
+			ToolUserID:        user.ID,
+			SpotifyPlaylistID: newPlaylist.ID,
+			IsTracked:         isPlaylistChecked[newPlaylist.ID],
+		}
+		playlistIds[i] = newPlaylist.ID
+	}
+
+	// Delete any playlists no longer tracked
+	if result := db.Debug().Where("tool_user_id = ?", user.ID).Where("spotify_playlist_id NOT IN ?", playlistIds).Delete(&models.ToolUserPlaylist{}); result.Error != nil {
+		log.Println(result.Error)
+		return result.Error
+	}
+
+	return db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "tool_user_id"}, {Name: "spotify_playlist_id"}},
+		DoUpdates: nil,
+	}).Create(newUserPlaylists).Error
 }
 
 func isRecentlyChecked(localPlaylist *models.SpotifyPlaylist) bool {

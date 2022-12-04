@@ -52,9 +52,11 @@ func startRecurringTasks() {
 			// Fetch all tokens
 			var tokens []*models.ToolSpotifyAuthToken
 			db.Find(&tokens)
+			log.Println("[TICK] Playlist interval")
 
 			// Schedule fetch tasks for them
 			for _, token := range tokens {
+				log.Println("Triggering task for:", token.ToolUserID)
 				onSpotifyTaskChannel <- SpotifyFetchTask{
 					ToolUserID: token.ToolUserID,
 					Task:       CheckPlaylistChanges,

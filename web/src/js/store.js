@@ -44,12 +44,23 @@ const store = createStore({
         /**
          *
          * @param state
-         * @param {SpotifyPlaylist[]} playlists
+         * @param {ToolUserPlaylist[]} userPlaylists
          */
-        newPlaylists(state, playlists) {
-            state.playlists = playlists.sort((a, b) => a.name.localeCompare(b.name))
-            state.idToPlaylist = {}
-            state.playlists.forEach(p => state.idToPlaylist[p.id] = p)
+        newPlaylists(state, userPlaylists) {
+            const spotifyPlaylists = [];
+            const idToPlaylist = [];
+
+            // Map the userPlaylists to state values
+            userPlaylists.forEach(userPlaylist => {
+                const spotifyPlaylist = userPlaylist.spotify_playlist;
+                spotifyPlaylist.is_tracked = userPlaylist.is_tracked;
+                spotifyPlaylists.push(spotifyPlaylist);
+                idToPlaylist[spotifyPlaylist.id] = spotifyPlaylist;
+            });
+
+            // Update the state
+            state.playlists = spotifyPlaylists.sort((a, b) => a.name.localeCompare(b.name))
+            state.idToPlaylist = idToPlaylist
         },
         newBackupConfigs(state, configs) {
             state.backupConfigs = configs
@@ -209,6 +220,15 @@ export default store
  */
 
 /**
+ * @typedef {object} ToolUserPlaylist
+ * @property {number} tool_user_id
+ * @property {ToolUser} [tool_user]
+ * @property {string} spotify_playlist_id
+ * @property {SpotifyPlaylist} spotify_playlist
+ * @property {boolean} is_tracked Whether the user is following this playlist
+ */
+
+/**
  * @typedef {object} SpotifyPlaylist
  *
  * @property {string} id
@@ -217,6 +237,7 @@ export default store
  * @property {string} owner_id
  * @property {boolean} public
  * @property {boolean} collaborative
+ * @property {boolean} [is_tracked] Whether the user is following this playlist
  */
 
 

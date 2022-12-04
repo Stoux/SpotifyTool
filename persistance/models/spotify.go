@@ -22,13 +22,16 @@ type SpotifyPlaylist struct {
 	DeletedAt        gorm.DeletedAt `gorm:"index"`
 
 	// Users contain the list of users that have this playlist in their library
-	Users  []*ToolUser `gorm:"many2many:tool_user_playlists"`
+	Users  []*ToolUserPlaylist
 	Tracks []*SpotifyPlaylistTrack
 }
 
 type ToolUserPlaylist struct {
-	ToolUserID        int
-	SpotifyPlaylistID string
+	ToolUserID        uint            `gorm:"primarykey" json:"tool_user_id"`
+	ToolUser          ToolUser        `json:"tool_user,omitempty""`
+	SpotifyPlaylistID string          `gorm:"primarykey" json:"spotify_playlist_id"`
+	SpotifyPlaylist   SpotifyPlaylist `json:"spotify_playlist,omitempty"`
+	IsTracked         bool            `gorm:"default:0" json:"is_tracked"` // Whether the playlist should be checked or not
 }
 
 func (sp *SpotifyPlaylist) FromSimpleApiPlaylist(playlist *spotify.SimplePlaylist, changeSnapshot bool) {
@@ -56,6 +59,11 @@ func (sp *SpotifyPlaylist) IsAlreadyCheckedInLast(d time.Duration) bool {
 	}
 
 	return sp.LastChecked.Add(d).After(time.Now())
+}
+
+// ShouldBeCheckedByDefault checks whether this playlist is a non-user-"Spotify"-playlist & should be checked by default
+func (sp *SpotifyPlaylist) ShouldBeCheckedByDefault() bool {
+	return sp.OwnerID != "spotify" || (sp.Name == "Discover Weekly" || sp.Name == "Release Radar")
 }
 
 type SpotifyPlaylistTrack struct {

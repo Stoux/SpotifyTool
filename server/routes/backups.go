@@ -6,6 +6,7 @@ import (
 	"SpotifyTool/server/handlers"
 	json2 "encoding/json"
 	"errors"
+	"github.com/getsentry/sentry-go"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"log"
@@ -52,7 +53,8 @@ func createPlaylistBackup(w http.ResponseWriter, r *http.Request, user models.To
 		if errors.As(createResult.Error, &mysqlError) && mysqlError.Number == 1062 {
 			writeError(w, "This combination already exists, update the existing config.", http.StatusConflict)
 		} else {
-			log.Println(createResult.Error)
+			log.Println("Failed to create playlist", createResult.Error)
+			sentry.CaptureException(createResult.Error)
 			writeError(w, "An internal database error occurred, try again later.", http.StatusInternalServerError)
 		}
 		return
@@ -78,7 +80,8 @@ func updatePlaylistBackup(w http.ResponseWriter, r *http.Request, user models.To
 	config.LastSync = time.Now()
 
 	if saveResult := persistance.Db.Save(&config); saveResult.Error != nil {
-		log.Println(saveResult.Error)
+		log.Println("Update playlist backup failed", saveResult.Error)
+		sentry.CaptureException(saveResult.Error)
 		writeError(w, "An internal database error occurred, try again later.", http.StatusInternalServerError)
 		return
 	}
@@ -93,7 +96,8 @@ func deletePlaylistBackup(w http.ResponseWriter, r *http.Request, user models.To
 	}
 
 	if deleteResult := persistance.Db.Delete(&config); deleteResult.Error != nil {
-		log.Println(deleteResult.Error)
+		log.Println("Failed to delete backup", deleteResult.Error)
+		sentry.CaptureException(deleteResult.Error)
 		writeError(w, "An internal database error occurred, try again later.", http.StatusInternalServerError)
 	} else {
 		handlers.OutputJson(w, map[string]bool{"success": true})
@@ -104,7 +108,8 @@ func findConfigFromPath(w http.ResponseWriter, r *http.Request, user models.Tool
 	vars := mux.Vars(r)
 	config = models.PlaylistBackupConfig{}
 	if find := persistance.Db.Where("id = ?", vars["id"]).Find(&config); find.Error != nil {
-		log.Println(find.Error)
+		log.Println("Failed to find config", find.Error)
+		sentry.CaptureException(find.Error)
 		writeError(w, "An internal database error occurred, try again later.", http.StatusInternalServerError)
 		return
 	}
@@ -143,7 +148,8 @@ func validateBackupConfigRequest(w http.ResponseWriter, r *http.Request, user mo
 		Where("id = ?", body.Source).Or("id = ?", body.Target).
 		Find(&playlists)
 	if result.Error != nil {
-		log.Println(result.Error)
+		log.Println("Failed to validate backup", result.Error)
+		sentry.CaptureException(result.Error)
 		writeError(w, "An error occurred with the database", http.StatusInternalServerError)
 		return
 	}

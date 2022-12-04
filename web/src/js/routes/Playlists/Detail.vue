@@ -7,6 +7,11 @@
         <a :href="'https://open.spotify.com/user/' + playlist.owner_id" class="btn btn-outline-secondary" target="_blank">
           View user '{{ playlist.owner_display_name }}'
         </a>
+        <a href="#" class="btn" :class="playlist.is_tracked ? 'btn-outline-success' : 'btn-outline-danger'"
+           title="Toggle whether this playlist should be tracked by the tool"
+           @click.prevent="toggleTrackState" >
+          This is list is currently {{ playlist.is_tracked ? 'Tracked' : 'not tracked' }}
+        </a>
       </ul>
     </Changelog>
   </div>
@@ -93,6 +98,22 @@ export default {
         }
 
         this.fetchingForId = undefined
+      })
+    },
+    toggleTrackState() {
+      if (false && !confirm('Are you sure you want to toggle the track state of this playlist?')) {
+        return;
+      }
+
+      const track = !this.playlist.is_tracked;
+      this.playlist.is_tracked = track
+
+      getApi().put(`/playlists/${this.playlist.id}/track-state`, {
+        track: track,
+      }).catch(error => {
+        console.error(error);
+        this.playlist.is_tracked = !track
+        alert('Something went wrong')
       })
     },
   },

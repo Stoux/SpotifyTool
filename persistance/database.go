@@ -4,6 +4,7 @@ import (
 	"SpotifyTool/persistance/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"log"
 	"os"
 )
 
@@ -16,7 +17,7 @@ func Init() {
 	// Resolve the DB variables
 	var (
 		user         = getEnvOrDefault("SPOTIFY_TOOL_MYSQL_USER", "root")
-		password     = getEnvOrDefault("SPOTIFY_TOOL_MYSQL_PASSWORD", "root")
+		password     = getEnvOrDefault("SPOTIFY_TOOL_MYSQL_PASSWORD", "")
 		databaseName = getEnvOrDefault("SPOTIFY_TOOL_MYSQL_DATABASE", "spotify-tool")
 		protocol     = getEnvOrDefault("SPOTIFY_TOOL_MYSQL_PROTOCOL", "tcp")
 		address      = getEnvOrDefault("SPOTIFY_TOOL_MYSQL_ADDRESS", "127.0.0.1:3306")
@@ -24,7 +25,12 @@ func Init() {
 
 	// Init the DB
 	var err error
-	dsn := user + ":" + password + "@" + protocol + "(" + address + ")/" + databaseName + "?charset=utf8mb4&parseTime=True&loc=Local"
+	var userPassword = user
+	if password != "" {
+		userPassword += ":" + password
+	}
+	dsn := userPassword + "@" + protocol + "(" + address + ")/" + databaseName + "?charset=utf8mb4&parseTime=True&loc=Local"
+	log.Print(dsn)
 	Db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
@@ -49,6 +55,7 @@ func migrateSchema() {
 		models.SpotifyPlaylist{},
 		models.SpotifyPlaylistTrack{},
 		models.PlaylistBackupConfig{},
+		models.ToolUserPlaylist{},
 	)
 	if err != nil {
 		panic(err)
