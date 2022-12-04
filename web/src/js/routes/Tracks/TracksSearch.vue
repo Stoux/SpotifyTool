@@ -63,9 +63,17 @@ export default {
         return;
       }
 
+
+      // Support directly searching for Spotify track IDs
+      let searchFor = query;
+      const spotifyUrlMatch = /open.spotify.com\/track\/([a-zA-Z0-9]+)/.exec(query);
+      if (spotifyUrlMatch) {
+        searchFor = spotifyUrlMatch[1];
+      }
+
       this.searching = true;
       this.debounce = setTimeout(() => {
-        getApi().get(`/tracks/search`, {params: {query}}).then(result => {
+        getApi().get(`/tracks/search`, {params: {query: searchFor}}).then(result => {
           if (query === this.query) {
             this.foundTracks = result.data;
           }
