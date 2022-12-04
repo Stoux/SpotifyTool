@@ -21,6 +21,11 @@
         </router-link>
       </li>
       <li class="nav-item">
+        <router-link to="/tracks" active-class="active" class="nav-link text-white">
+          Find tracks
+        </router-link>
+      </li>
+      <li class="nav-item">
         <router-link to="/backups" active-class="active" class="nav-link text-white">
           Backups / Sync
         </router-link>

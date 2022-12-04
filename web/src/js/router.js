@@ -6,10 +6,12 @@ import store from "./store";
 import PlaylistOverview from "./routes/Playlists/Overview";
 import PlaylistList from "./routes/Playlists/List";
 import PlaylistDetail from "./routes/Playlists/Detail";
+import TracksOverview from "./routes/Tracks/Overview";
 import BackupOverview from "./routes/Backup/Overview";
 import BackupList from "./routes/Backup/List";
 import BackupEdit from "./routes/Backup/Edit";
 import CombinedPlaylistChangelog from "./routes/Playlists/CombinedChangelog";
+import TracksSearch from "./routes/Tracks/TracksSearch.vue";
 
 
 const router = createRouter({
@@ -57,6 +59,18 @@ const router = createRouter({
                     component: PlaylistDetail,
                     props: true,
                 }
+            ]
+        },
+
+        // Track/songs routes
+        {
+            path: '/tracks',
+            component: TracksOverview,
+            children: [
+                {
+                    path: '',
+                    component: TracksSearch,
+                },
             ]
         },
 
